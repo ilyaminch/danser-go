@@ -1,6 +1,7 @@
 package dance
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"log"
 	"math"
@@ -24,6 +25,7 @@ import (
 	"github.com/wieku/danser-go/app/settings"
 	"github.com/wieku/danser-go/framework/env"
 	"github.com/wieku/danser-go/framework/files"
+	"github.com/wieku/danser-go/framework/math/color"
 	"github.com/wieku/danser-go/framework/math/mutils"
 	"github.com/wieku/danser-go/framework/math/vector"
 )
@@ -64,12 +66,14 @@ func NewSubControl() *subControl {
 }
 
 type ReplayController struct {
-	bMap        *beatmap.BeatMap
-	replays     []RpData
-	cursors     []*graphics.Cursor
-	controllers []*subControl
-	ruleset     *osu.OsuRuleSet
-	lastTime    float64
+	bMap                  *beatmap.BeatMap
+	replays               []RpData
+	cursors               []*graphics.Cursor
+	controllers           []*subControl
+	ruleset               *osu.OsuRuleSet
+	lastTime              float64
+	studioCandidateColors map[*rplpa.Replay]color.Color
+	studioCursorColors    map[int]color.Color
 }
 
 func NewReplayController() Controller {
@@ -80,6 +84,8 @@ func NewReplayController() Controller {
 
 func (controller *ReplayController) SetBeatMap(beatMap *beatmap.BeatMap) {
 	controller.bMap = beatMap
+	controller.studioCandidateColors = map[*rplpa.Replay]color.Color{}
+	controller.studioCursorColors = map[int]color.Color{}
 
 	organizeReplays()
 
@@ -89,12 +95,15 @@ func (controller *ReplayController) SetBeatMap(beatMap *beatmap.BeatMap) {
 	if settings.REPLAY != "" {
 		log.Println("Loading: ", settings.REPLAY)
 
-		data, err := os.ReadFile(settings.REPLAY)
+		data, err := files.ReadLimited(settings.REPLAY, 20*1024*1024)
 		if err != nil {
 			panic(err)
 		}
 
-		replayD, _ := rplpa.ParseReplay(data)
+		replayD, err := rplpa.ParseReplay(data)
+		if err != nil {
+			panic(err)
+		}
 
 		if replayD.ReplayData == nil || len(replayD.ReplayData) == 0 {
 			log.Println("Excluding for missing input data:", replayD.Username)
@@ -120,6 +129,9 @@ func (controller *ReplayController) SetBeatMap(beatMap *beatmap.BeatMap) {
 	displayedMods := ^difficulty.ParseMods(settings.Knockout.HideMods)
 
 	for i, replay := range candidates {
+		if fixedColor, ok := controller.studioCandidateColors[replay]; ok {
+			controller.studioCursorColors[i] = fixedColor
+		}
 		log.Println(fmt.Sprintf("Loading replay for \"%s\":", replay.Username))
 
 		control := NewSubControl()
@@ -167,6 +179,11 @@ func (controller *ReplayController) SetBeatMap(beatMap *beatmap.BeatMap) {
 	}
 
 	if !localReplay && (settings.Knockout.AddDanser || len(controller.controllers) == 0) {
+		shifted := map[int]color.Color{}
+		for index, fixedColor := range controller.studioCursorColors {
+			shifted[index+1] = fixedColor
+		}
+		controller.studioCursorColors = shifted
 		control := NewSubControl()
 		control.diff = beatMap.Diff.Clone()
 
@@ -192,7 +209,7 @@ func organizeReplays() {
 	for _, osPathname := range unorganizedReplays {
 		log.Println("Checking: ", osPathname)
 
-		data, err := os.ReadFile(osPathname)
+		data, err := files.ReadLimited(osPathname, 20*1024*1024)
 		if err != nil {
 			log.Println("Error reading file: ", err)
 			log.Println("Skipping... ")
@@ -223,11 +240,17 @@ func organizeReplays() {
 
 func (controller *ReplayController) getCandidates() (candidates []*rplpa.Replay) {
 	excludedMods := difficulty.ParseMods(settings.Knockout.ExcludeMods)
+	rejectReplay := func(reason string) {
+		if len(settings.StudioReplayColors) > 0 {
+			panic("Studio replay rejected: " + reason)
+		}
+		log.Println(reason)
+	}
 
 	tryAddReplay := func(path string, modExclude bool) {
 		log.Println("Loading: ", path)
 
-		data, err := os.ReadFile(path)
+		data, err := files.ReadLimited(path, 20*1024*1024)
 		if err != nil {
 			panic(err)
 		}
@@ -235,12 +258,12 @@ func (controller *ReplayController) getCandidates() (candidates []*rplpa.Replay)
 		replayD, err := rplpa.ParseReplay(data)
 
 		if err != nil {
-			log.Println("Failed to load replay:", err)
+			rejectReplay(fmt.Sprintf("Failed to load replay: %s", err))
 			return
 		}
 
 		if !strings.EqualFold(replayD.BeatmapMD5, controller.bMap.MD5) {
-			log.Println("Incompatible maps, skipping", replayD.Username)
+			rejectReplay("Incompatible maps: " + replayD.Username)
 			return
 		}
 
@@ -261,7 +284,7 @@ func (controller *ReplayController) getCandidates() (candidates []*rplpa.Replay)
 		}
 
 		if !mods.Compatible() {
-			log.Println("Excluding for incompatible mods:", replayD.Username)
+			rejectReplay("Incompatible mods: " + replayD.Username)
 			return
 		}
 
@@ -271,11 +294,19 @@ func (controller *ReplayController) getCandidates() (candidates []*rplpa.Replay)
 		}
 
 		if replayD.ReplayData == nil || len(replayD.ReplayData) == 0 {
-			log.Println("Excluding for missing input data:", replayD.Username)
+			rejectReplay("Missing input data: " + replayD.Username)
 			return
 		}
 
 		candidates = append(candidates, replayD)
+		if len(settings.StudioReplayColors) > 0 {
+			identity := fmt.Sprintf("%x", sha256.Sum256(data))
+			fixedColor, ok := settings.StudioReplayColors[identity]
+			if !ok {
+				panic(fmt.Sprintf("Studio replay contents differ from manifest: %s", path))
+			}
+			controller.studioCandidateColors[replayD] = fixedColor
+		}
 	}
 
 	if settings.KNOCKOUTREPLAYS != nil && len(settings.KNOCKOUTREPLAYS) > 0 {
@@ -665,6 +696,21 @@ func (controller *ReplayController) processStable(i int, c *subControl, nTime fl
 
 func (controller *ReplayController) GetCursors() []*graphics.Cursor {
 	return controller.cursors
+}
+
+// ApplyStudioColors preserves palette identity after score sorting and elimination.
+// The same array is passed to cursor rendering and all overlay layers.
+func (controller *ReplayController) ApplyStudioColors(colors []color.Color) {
+	count := len(controller.cursors)
+	if count == 0 {
+		return
+	}
+	for i := range colors {
+		if fixedColor, ok := controller.studioCursorColors[i%count]; ok {
+			fixedColor.A = colors[i].A
+			colors[i] = fixedColor
+		}
+	}
 }
 
 func (controller *ReplayController) GetReplays() []RpData {

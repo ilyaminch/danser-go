@@ -21,6 +21,9 @@ func PrepareFFMpeg(cmdName string, args ...string) (*exec.Cmd, error) {
 		ffmpegInit = true
 
 		ffmpegExec, err := files.GetCommandExec("ffmpeg", "ffmpeg")
+		if studioFFmpeg := os.Getenv("DANSER_STUDIO_FFMPEG"); studioFFmpeg != "" {
+			ffmpegExec, err = exec.LookPath(studioFFmpeg)
+		}
 		if err != nil {
 			return nil, fmt.Errorf(errMsg)
 		}
