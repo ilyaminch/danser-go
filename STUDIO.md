@@ -2,7 +2,7 @@
 
 This is an unofficial fork of [Wieku/danser-go](https://github.com/Wieku/danser-go), used by [Danser Studio WebUI](https://github.com/ilyaminch/danser-go-webui). Original authorship, history, GPLv3 license, asset credits and third-party notices are preserved. Studio modifications were introduced in October 2026; this separation is dated 2026-10-12.
 
-Base: upstream `2fc4c8931ff4446a411b0094d7d7b4ede82c61c4`, following release `0.12.0`. `main` preserves upstream 0.12.0; `develop` is the integration branch. Studio work is reviewed through feature/fix branches. The WebUI pins a specific engine commit, not a moving branch.
+Base: upstream `2fc4c8931ff4446a411b0094d7d7b4ede82c61c4`, following release `0.12.0`. `main` contains released Studio work; `develop` is the integration branch. Studio work is reviewed through feature/fix branches. The WebUI pins a specific engine commit, not a moving branch.
 
 ## Studio integration
 
@@ -20,11 +20,11 @@ Example manifest:
 
 Stock danser flags/settings remain available. The upstream desktop launcher is unchanged; the WebUI uses the Studio CLI. Build instructions and runtime preparation are maintained in the WebUI repository's `Build-Engine.ps1` and README. No generated Studio executable, local replays, credentials or output media are added here. Libraries and assets already tracked by upstream remain present with their original notices and license conditions.
 
-## Native input limits — pending validation
+## Native input limits and validation
 
 Changes dated 2026-10-12 also constrain background opening to its map directory using Go's `os.Root`, retain the default-background fallback, limit map/replay reads and LZMA output/dictionaries/frame counts, and bound image/texture allocations. The MIT replay decoder source fork is in `third_party/rplpa`; its license and change summary are preserved.
 
-These security changes have passed source/syntax review only. Added native regressions and full native builds have not been run in the required isolated environment. They are not a validated release. FFmpeg secondary-resource behavior and access by another OS account remain conditional, unverified hypotheses; these source limits do not sandbox the whole renderer process. The WebUI repository has corresponding HTTP/import protections and local review notes.
+The Windows CLI build, native regressions and synthetic WebUI video/screenshot integration have passed. Ordinary regression checks are not a full OS-sandboxed exploitation audit. FFmpeg secondary-resource behavior and access by another OS account remain conditional, unverified hypotheses; these source limits do not sandbox the whole renderer process. The WebUI repository has corresponding HTTP/import protections and local review notes.
 
 ## License and assets
 
