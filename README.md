@@ -1,3 +1,5 @@
+> **Danser Studio fork:** This unofficial fork contains Studio integration changes, dated 2026-10-12. Original project: [Wieku/danser-go](https://github.com/Wieku/danser-go). See [STUDIO.md](STUDIO.md) for changes, provenance and GPLv3 notices. Upstream documentation follows.
+
 <p align="center">
   <img width="500px" src="assets/textures/coinbig.png"/>
 </p>

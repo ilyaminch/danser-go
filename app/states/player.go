@@ -866,6 +866,9 @@ func (player *Player) DrawMain(float64) {
 	}
 
 	cursorColors := settings.Cursor.GetColors(settings.DIVIDES, len(player.controller.GetCursors()), player.Scl, player.cursorGlider.GetValue())
+	if studioController, ok := player.controller.(interface{ ApplyStudioColors([]color2.Color) }); ok {
+		studioController.ApplyStudioColors(cursorColors)
+	}
 
 	if player.overlay != nil {
 		player.drawOverlayPart(player.overlay.DrawBackground, cursorColors, cursorCameras[0], 1)

@@ -150,14 +150,31 @@ func run() {
 		flag.BoolVar(&preciseProgress, "preciseprogress", false, "Show rendering progress in 1% increments")
 
 		sPatch := flag.String("sPatch", "", "Patches the currently loaded settings")
+		studioManifest := flag.String("studio-manifest", "", "Studio JSON file containing replay paths and fixed per-replay colors")
+		studioVersion := flag.Bool("studio-version", false, "Print Studio manifest protocol version and exit")
 
 		flag.Parse()
+		if *studioVersion {
+			fmt.Printf("danser-studio-manifest:%d\n", settings.StudioManifestVersion)
+			os.Exit(0)
+		}
 
 		if *mods != "" && *mods2 != "" {
 			panic("You can't specify classic and lazer mods at the same time")
 		}
 
 		var knockoutReplays []string
+		if *studioManifest != "" {
+			if *knockout2 != "" || *replay != "" {
+				panic("studio-manifest cannot be combined with knockout2 or replay")
+			}
+			var err error
+			knockoutReplays, err = settings.LoadStudioManifest(*studioManifest)
+			if err != nil {
+				panic(fmt.Sprintf("Failed to load Studio manifest: %s", err))
+			}
+			*knockout = true
+		}
 
 		if *knockout2 != "" {
 			if err := json.Unmarshal([]byte(*knockout2), &knockoutReplays); err != nil {
