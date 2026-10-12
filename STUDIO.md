@@ -24,7 +24,7 @@ Stock danser flags/settings remain available. The upstream desktop launcher is u
 
 Changes dated 2026-10-12 also constrain background opening to its map directory using Go's `os.Root`, retain the default-background fallback, limit map/replay reads and LZMA output/dictionaries/frame counts, and bound image/texture allocations. The MIT replay decoder source fork is in `third_party/rplpa`; its license and change summary are preserved.
 
-The Windows CLI build, native regressions and synthetic WebUI video/screenshot integration have passed. Ordinary regression checks are not a full OS-sandboxed exploitation audit. FFmpeg secondary-resource behavior and access by another OS account remain conditional, unverified hypotheses; these source limits do not sandbox the whole renderer process. The WebUI repository has corresponding HTTP/import protections and local review notes.
+The Windows CLI build, native regressions and synthetic WebUI video/screenshot integration have passed. The file-symlink regression is skipped on hosts without the required Windows privilege; the directory-junction escape regression passes without that privilege. Ordinary regression checks are not a full OS-sandboxed exploitation audit. FFmpeg secondary-resource behavior and access by another OS account remain conditional, unverified hypotheses; these source limits do not sandbox the whole renderer process. The WebUI repository has corresponding HTTP/import protections and local review notes.
 
 ## License and assets
 
