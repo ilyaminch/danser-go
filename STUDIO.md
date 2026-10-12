@@ -20,6 +20,12 @@ Example manifest:
 
 Stock danser flags/settings remain available. The upstream desktop launcher is unchanged; the WebUI uses the Studio CLI. Build instructions and runtime preparation are maintained in the WebUI repository's `Build-Engine.ps1` and README. No compiled runtime, replays, credentials or output media are distributed in this source repository.
 
+## Native input limits — pending validation
+
+Changes dated 2026-10-12 also constrain background opening to its map directory using Go's `os.Root`, retain the default-background fallback, limit map/replay reads and LZMA output/dictionaries/frame counts, and bound image/texture allocations. The MIT replay decoder source fork is in `third_party/rplpa`; its license and change summary are preserved.
+
+These security changes have passed source/syntax review only. Added native regressions and full native builds have not been run in the required isolated environment. They are not a validated release. FFmpeg secondary-resource behavior and access by another OS account remain conditional, unverified hypotheses; these source limits do not sandbox the whole renderer process. The WebUI repository has corresponding HTTP/import protections and local review notes.
+
 ## License and assets
 
 Studio engine modifications are distributed under GPLv3, as part of this covered work. See [LICENSE](LICENSE) and [CREDITS.md](CREDITS.md). A modified binary must be accompanied by a GPL-compliant way to obtain its corresponding source, including these changes and build instructions. Assets and BASS have separate conditions; do not assume the code license covers all runtime resources.
