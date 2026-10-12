@@ -18,7 +18,7 @@ Example manifest:
 {"Version":1,"Replays":[{"Path":"attempt.osr","SHA256":"<64 lowercase hex characters>","Color":"#ff5588"}]}
 ```
 
-Stock danser flags/settings remain available. The upstream desktop launcher is unchanged; the WebUI uses the Studio CLI. Build instructions and runtime preparation are maintained in the WebUI repository's `Build-Engine.ps1` and README. No compiled runtime, replays, credentials or output media are distributed in this source repository.
+Stock danser flags/settings remain available. The upstream desktop launcher is unchanged; the WebUI uses the Studio CLI. Build instructions and runtime preparation are maintained in the WebUI repository's `Build-Engine.ps1` and README. No generated Studio executable, local replays, credentials or output media are added here. Libraries and assets already tracked by upstream remain present with their original notices and license conditions.
 
 ## Native input limits — pending validation
 
