@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"math"
 	"os"
@@ -33,6 +32,7 @@ import (
 	"github.com/wieku/danser-go/framework/assets"
 	"github.com/wieku/danser-go/framework/bass"
 	"github.com/wieku/danser-go/framework/env"
+	"github.com/wieku/danser-go/framework/files"
 	"github.com/wieku/danser-go/framework/frame"
 	"github.com/wieku/danser-go/framework/goroutines"
 	batch2 "github.com/wieku/danser-go/framework/graphics/batch"
@@ -150,14 +150,31 @@ func run() {
 		flag.BoolVar(&preciseProgress, "preciseprogress", false, "Show rendering progress in 1% increments")
 
 		sPatch := flag.String("sPatch", "", "Patches the currently loaded settings")
+		studioManifest := flag.String("studio-manifest", "", "Studio JSON file containing replay paths and fixed per-replay colors")
+		studioVersion := flag.Bool("studio-version", false, "Print Studio manifest protocol version and exit")
 
 		flag.Parse()
+		if *studioVersion {
+			fmt.Printf("danser-studio-manifest:%d\n", settings.StudioManifestVersion)
+			os.Exit(0)
+		}
 
 		if *mods != "" && *mods2 != "" {
 			panic("You can't specify classic and lazer mods at the same time")
 		}
 
 		var knockoutReplays []string
+		if *studioManifest != "" {
+			if *knockout2 != "" || *replay != "" {
+				panic("studio-manifest cannot be combined with knockout2 or replay")
+			}
+			var err error
+			knockoutReplays, err = settings.LoadStudioManifest(*studioManifest)
+			if err != nil {
+				panic(fmt.Sprintf("Failed to load Studio manifest: %s", err))
+			}
+			*knockout = true
+		}
 
 		if *knockout2 != "" {
 			if err := json.Unmarshal([]byte(*knockout2), &knockoutReplays); err != nil {
@@ -200,7 +217,7 @@ func run() {
 		var modsNew []rplpa.ModInfo = nil
 
 		if *replay != "" {
-			bytes, err := ioutil.ReadFile(*replay)
+			bytes, err := files.ReadLimited(*replay, 20*1024*1024)
 			if err != nil {
 				panic(err)
 			}
